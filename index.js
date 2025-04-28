@@ -1,6 +1,10 @@
 require('dotenv').config();
+const express = require('express');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder, Partials, REST, Routes, ActivityType } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
+const app = express();
+const host = process.env.HOST;
+const port = process.env.PORT;
 
 const client = new Client({
     intents: [
@@ -215,6 +219,17 @@ client.once('ready', async () => {
     } catch (error) {
         console.error('Error registering commands:', error);
     }
+
+    app.get('/status', (req, res) => {
+        res.json({
+            status: 'ok',
+            message: 'Le bot est en ligne.'
+        });
+    });
+
+    app.listen(port, () => {
+        console.log(`Serveur de statut en cours d'exécution sur http://${host}:${port}/status`);
+    });
 });
 
 client.on('interactionCreate', async interaction => {
