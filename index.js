@@ -3,8 +3,8 @@ const express = require('express');
 const { Client, GatewayIntentBits, Collection, EmbedBuilder, Partials, REST, Routes, ActivityType } = require('discord.js');
 const sqlite3 = require('sqlite3').verbose();
 const app = express();
-const host = process.env.HOST;
-const port = process.env.PORT;
+const port = process.env.PORT || 3000; // Utilisez le port défini dans les variables d'environnement ou 3000 par défaut
+const host = process.env.HOST || 'localhost'; // Utilisez l'hôte défini dans les variables d'environnement ou 'localhost' par défaut
 
 const client = new Client({
     intents: [
@@ -227,8 +227,20 @@ client.once('ready', async () => {
         });
     });
 
+    app.get('/leaderboard', async (req, res) => {
+        try {
+            const guildId = process.env.GUILD_ID;
+            const leaderboard = await getFullLeaderboard(guildId);
+            res.json(leaderboard);
+        } catch (error) {
+            console.error('Error fetching leaderboard:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    });
+
     app.listen(port, () => {
         console.log(`Serveur de statut en cours d'exécution sur http://${host}:${port}/status`);
+        console.log(`Endpoint /leaderboard disponible sur http://${host}:${port}/leaderboard`);
     });
 });
 
@@ -332,6 +344,17 @@ async function getUser(guildId, userId) {
 async function getLeaderboard(guildId) {
     return new Promise((resolve, reject) => {
         db.all('SELECT user_id, level, xp FROM users WHERE guild_id = ? AND saison = (SELECT MAX(saison) FROM users) ORDER BY level DESC, xp DESC LIMIT 10', [guildId], (err, rows) => {
+            if (err) {
+                return reject(err);
+            }
+            resolve(rows);
+        });
+    });
+}
+
+async function getFullLeaderboard(guildId) {
+    return new Promise((resolve, reject) => {
+        db.all('SELECT user_id, level, xp FROM users WHERE guild_id = ? AND saison = (SELECT MAX(saison) FROM users) ORDER BY level DESC, xp DESC', [guildId], (err, rows) => {
             if (err) {
                 return reject(err);
             }
