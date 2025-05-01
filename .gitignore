@@ -4,6 +4,9 @@ node_modules/
 # Ignore environment variable files
 .env
 
+# Ignore data files
+elythera.db
+
 # Ignore log files
 *.log
 
