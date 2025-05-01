@@ -231,7 +231,8 @@ client.once('ready', async () => {
         try {
             const guildId = process.env.GUILD_ID;
             const leaderboard = await getFullLeaderboard(guildId);
-            res.json(leaderboard);
+            const leaderboardWithUsernames = await addUsernamesToLeaderboard(leaderboard);
+            res.json(leaderboardWithUsernames);
         } catch (error) {
             console.error('Error fetching leaderboard:', error);
             res.status(500).json({ error: 'Internal Server Error' });
@@ -294,7 +295,7 @@ client.on('voiceStateUpdate', (oldState, newState) => {
     }
 });
 
-function updateVoiceXp() {
+async function updateVoiceXp() {
     db.all('SELECT * FROM voice_activity', async (err, rows) => {
         if (err) {
             console.error(err);
@@ -361,6 +362,20 @@ async function getFullLeaderboard(guildId) {
             resolve(rows);
         });
     });
+}
+
+async function addUsernamesToLeaderboard(leaderboard) {
+    const promises = leaderboard.map(async (user) => {
+        let member;
+        try {
+            member = await client.users.fetch(user.user_id);
+        } catch (error) {
+            return { ...user, username: 'Unknown' };
+        }
+        return { ...user, username: member.username };
+    });
+
+    return Promise.all(promises);
 }
 
 async function updateUser(guildId, userId, xp, level, saison) {
@@ -461,7 +476,6 @@ function createProgressBar(currentXp, maxXp) {
     const barLength = 20;
     const filledLength = Math.round(barLength * progress);
     const emptyLength = barLength - filledLength;
-
     const filledBar = '█'.repeat(filledLength);
     const emptyBar = '░'.repeat(emptyLength);
 
